@@ -1,0 +1,6 @@
+@OprawaObrazowWebApi_HostAddress = http://localhost:5019
+
+GET {{OprawaObrazowWebApi_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
