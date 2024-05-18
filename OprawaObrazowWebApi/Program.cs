@@ -1,7 +1,65 @@
+using System.Text;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.OData;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OData.Edm;
+using Microsoft.OData.ModelBuilder;
+using OprawaObrazowWebApi;
+using OprawaObrazowWebApi.Models;
+using OprawaObrazowWebApi.Repositories;
+using OprawaObrazowWebApi.Repositories.Interfaces;
+using OprawaObrazowWebApi.Services;
+using OprawaObrazowWebApi.Services.Interfaces;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+builder.Services.AddDbContext<DatabaseContext>(opt =>
+    opt.UseSqlServer(builder.Configuration.GetConnectionString("OprawaDb")));
+
+var jwtIssuer = builder.Configuration.GetSection("Jwt:Issuer").Get<string>() ?? throw new KeyNotFoundException("JWT issuer missing in config");
+var jwtKey = builder.Configuration.GetSection("Jwt:Key").Get<string>() ?? throw new KeyNotFoundException("JWT key missing in config");
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = jwtIssuer,
+            ValidAudience = jwtIssuer,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
+        };
+    });
+
+//register repositories
+builder.Services
+    .AddScoped<IUserRepository, UserRepository>()
+    .AddScoped<IBaseRepository<Client>, ClientRepository>()
+    .AddScoped<IBaseRepository<Delivery>, DeliveryRepository>()
+    .AddScoped<IBaseRepository<FramePiece>, FramePieceRepository>()
+    .AddScoped<IBaseRepository<Frame>, FrameRepository>()
+    .AddScoped<IBaseRepository<Order>, OrderRepository>()
+    .AddScoped<IBaseRepository<Supplier>, SupplierRepository>();
+
+//register services
+builder.Services
+    .AddScoped<IUserService, UserService>()
+    .AddScoped<IBaseService<Client>, ClientService>();
+
+builder.Services.AddControllers()
+    .AddOData(options => options
+        .AddRouteComponents("odata", GetEdmModel())
+        .Select()
+        .Filter()
+        .OrderBy()
+        .SetMaxTop(50)
+        .Count()
+        .Expand()
+    );
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -10,35 +68,21 @@ var app = builder.Build();
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
+    var db = app.Services.CreateScope().ServiceProvider.GetService<DatabaseContext>();
+    db?.Database.EnsureCreated();
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
 app.UseHttpsRedirection();
-
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
-
-app.MapGet("/weatherforecast", () =>
-    {
-        var forecast = Enumerable.Range(1, 5).Select(index =>
-                new WeatherForecast
-                (
-                    DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-                    Random.Shared.Next(-20, 55),
-                    summaries[Random.Shared.Next(summaries.Length)]
-                ))
-            .ToArray();
-        return forecast;
-    })
-    .WithName("GetWeatherForecast")
-    .WithOpenApi();
-
+app.UseAuthentication();
+app.UseAuthorization();
+app.MapControllers();
 app.Run();
 
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
+static IEdmModel GetEdmModel()
 {
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
+    ODataConventionModelBuilder builder = new();
+    builder.EntitySet<Client>("Client");
+    return builder.GetEdmModel();
 }
