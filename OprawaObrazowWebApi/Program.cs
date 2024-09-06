@@ -1,6 +1,7 @@
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.OData;
+using Microsoft.AspNetCore.OData.Routing.Conventions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OData.Edm;
@@ -50,16 +51,7 @@ builder.Services
     .AddScoped<IUserService, UserService>()
     .AddScoped<IBaseService<Client>, ClientService>();
 
-builder.Services.AddControllers()
-    .AddOData(options => options
-        .AddRouteComponents("odata", GetEdmModel())
-        .Select()
-        .Filter()
-        .OrderBy()
-        .SetMaxTop(50)
-        .Count()
-        .Expand()
-    );
+builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -79,10 +71,3 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 app.Run();
-
-static IEdmModel GetEdmModel()
-{
-    ODataConventionModelBuilder builder = new();
-    builder.EntitySet<Client>("Client");
-    return builder.GetEdmModel();
-}

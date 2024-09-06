@@ -8,26 +8,26 @@ namespace OprawaObrazowWebApi.Controllers;
 [Route("api/[controller]")]
 public class UserController(IUserService userService) : ControllerBase
 {
-    [HttpPost("register")]
-    public async Task<IActionResult> Register([FromBody] RegisterResource resource, CancellationToken cancellationToken)
-    {
-        try
-        {
-            var response = await userService.Register(resource, cancellationToken);
-            return Ok(response);
-        }
-        catch(Exception e)
-        {
-            return BadRequest(new { ErrorMessage = e.Message });
-        }
-    }
-
     [HttpPost("login")]
     public async Task<IActionResult> Login(LoginResource resource, CancellationToken cancellationToken)
     {
         try
         {
             var response = await userService.Login(resource, cancellationToken);
+            return Ok(response);
+        }
+        catch (Exception e)
+        {
+            return BadRequest(new { ErrorMessage = e.Message });
+        }
+    }
+    
+    [HttpPost("refresh")]
+    public async Task<IActionResult> Refresh(string accessToken, string refreshToken, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var response = await userService.RefreshTokens(accessToken, refreshToken, cancellationToken);
             return Ok(response);
         }
         catch (Exception e)

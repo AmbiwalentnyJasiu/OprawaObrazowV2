@@ -1,7 +1,4 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.OData.Formatter;
-using Microsoft.AspNetCore.OData.Query;
-using Microsoft.AspNetCore.OData.Results;
 using OprawaObrazowWebApi.Models;
 using OprawaObrazowWebApi.Services.Interfaces;
 
@@ -11,18 +8,16 @@ namespace OprawaObrazowWebApi.Controllers;
 [Route("api/[controller]")]
 public class ClientController(IBaseService<Client> service) : ControllerBase
 {
-    [EnableQuery]
     [HttpGet]
-    public IQueryable<Client> Get()
+    public async Task<IActionResult> Get()
     {
-        return service.GetAll();
+        return Ok(await service.GetAll());
     }
     
-    [EnableQuery]
     [HttpGet("{id}")]
-    public SingleResult<Client> Get([FromODataUri] int key)
+    public async Task<IActionResult> Get(int key)
     {
-        return SingleResult.Create(service.GetById(key));
+        return Ok(await service.GetById(key));
     }
     
     [HttpPost]
@@ -37,7 +32,7 @@ public class ClientController(IBaseService<Client> service) : ControllerBase
     }
     
     [HttpPut]
-    public async Task<IActionResult> Put([FromODataUri] int key, [FromBody] Client client)
+    public async Task<IActionResult> Put(int key, [FromBody] Client client)
     {
         if (!ModelState.IsValid)
         {
@@ -49,7 +44,7 @@ public class ClientController(IBaseService<Client> service) : ControllerBase
     }
     
     [HttpDelete]
-    public IActionResult Delete([FromODataUri] int key)
+    public IActionResult Delete(int key)
     {
         service.Delete(key);
         return NoContent();

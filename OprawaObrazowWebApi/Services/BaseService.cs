@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using OprawaObrazowWebApi.Repositories.Interfaces;
 using OprawaObrazowWebApi.Services.Interfaces;
 
@@ -5,14 +6,14 @@ namespace OprawaObrazowWebApi.Services;
 
 public class BaseService<T>(IBaseRepository<T> repo) : IBaseService<T> where T: class
 {
-    public virtual IQueryable<T> GetAll()
+    public virtual async Task<List<T>> GetAll()
     {
-        return repo.GetAll();
+        return await repo.GetAll().ToListAsync();
     }
 
-    public virtual IQueryable<T> GetById(int id)
+    public virtual async Task<T> GetById(int id)
     {
-        return repo.GetById(id);
+        return await repo.GetById(id).FirstOrDefaultAsync() ?? throw new KeyNotFoundException();
     }
 
     public virtual async Task Create(T entity)

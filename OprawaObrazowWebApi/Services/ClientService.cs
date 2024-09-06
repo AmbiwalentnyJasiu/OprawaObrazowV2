@@ -14,4 +14,5 @@ public class ClientService(IBaseRepository<Client> repo) : BaseService<Client>(r
         
         await repo.Update(entity);
     }
+    
 }
